@@ -66,13 +66,6 @@ class PermissionModel(db.Model):
         self.userId = userId
         self.permission = permission
 
-@app.route('/test',methods=['GET'])
-def test():
-    return {
-        "test" : "test1"
-    }
-
-
 
 #region Admin Metodları
 @app.route('/admin',methods=['GET'])  # tüm admin userları çekmek için get metodu
