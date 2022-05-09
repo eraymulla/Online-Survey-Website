@@ -1,4 +1,3 @@
-from email import message
 from flask import Flask, jsonify
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with, request
 from flask_sqlalchemy import SQLAlchemy
@@ -83,11 +82,11 @@ def getAdmin():
         output.append(tempAdmin)
     return jsonify(output)
 
-@app.route('/admin',methods=['GET'])  # idye göre admin datası çekme metodu
-def getAdminById():
-    adminId = request.get_json() 
-    checkAdmin = AdminUserModel.query.filter_by(userId = adminId)
-    return jsonify(checkAdmin)
+@app.route('/admin/<int:id>',methods=['GET'])  # idye göre admin datası çekme metodu
+def getAdminById(id):
+    
+    checkAdmin = AdminUserModel.query.filter_by(userId = id).first_or_404()
+    return checkAdmin.name,201
 
 
 #region admin post metodları
@@ -102,7 +101,7 @@ def adminLogin():
     newAdmin = AdminUserModel(newId+1,name=adminData['name'],surname=adminData['surname'],email=adminData['email'],password=adminData['password'],permissionId=2)
     db.session.add(newAdmin)
     db.session.commit()
-    return newAdmin
+    return "Kullanıcı ekleme işlemi başarılı",201
 
 @app.route('/adminSignin',methods=['POST'])    # admin giriş kontrol metodu
 def adminSignin():
@@ -122,6 +121,61 @@ def adminSignin():
 #endregion
 #endregion
 
+
+#region Participant Metodları
+
+@app.route('/participant',methods=['GET'])  # tüm participant userları çekmek için get metodu
+def getParticipant():
+    allParticipants = ParticipantUserModel.query.all()
+    output = []
+    for admin in allParticipants:
+        tempParticipant = {}
+        tempParticipant['userId'] = admin.userId
+        tempParticipant['name'] = admin.name
+        tempParticipant['surname'] = admin.surname
+        tempParticipant['email'] = admin.email
+        tempParticipant['password'] = admin.password
+        tempParticipant['permissionId'] = admin.permissionId
+        output.append(tempParticipant)
+    return jsonify(output)
+
+@app.route('/participant/<int:id>',methods=['GET'])  # idye göre admin datası çekme metodu
+def getParticipantById(id):
+    print("------------metoddan gelen id değeri : ",id,"-------------")
+    checkParticipant = ParticipantUserModel.query.filter_by(userId = id).first_or_404()
+    return checkParticipant.name,201
+
+#region participant post metodları
+@app.route('/participantLogin',methods=['POST'])  # admin kayıt için post metodu
+def participantLogin():
+    participantData = request.get_json()  #post requestten admin datalarını aldık
+    participants = ParticipantUserModel.query.all()
+    newId = 0
+    for participant in participants:
+        if participant.userId > newId:
+            newId = participant.userId  
+    newParticipant = ParticipantUserModel(newId+1,name=participantData['name'],surname=participantData['surname'],email=participantData['email'],password=participantData['password'],permissionId=2)
+    db.session.add(newParticipant)
+    db.session.commit()
+    return "Kullanıcı ekleme işlemi başarılı",201
+
+@app.route('/participantSignin',methods=['POST'])    # admin giriş kontrol metodu
+def participantSignin():
+    checkParticipant = request.get_json() 
+    print("-------------------")
+    print(checkParticipant) 
+    print("-------------------")
+    allParticipants = ParticipantUserModel.query.all()
+    for participant in allParticipants:
+        print(participant.email, participant.password)    # tablodaki bütün admin değerlerinin email ve password bilgileri
+    print("-------------------")
+    for participant in allParticipants:
+        if participant.email == checkParticipant['email'] and participant.password == checkParticipant['password']:
+            #abort(201,message="Admin sign in successfully")
+            return 'Giriş başarılı',201
+    return 'kullanıcı adı ya da şifre yanlış',404
+#endregion
+#endregion
 
 
 
