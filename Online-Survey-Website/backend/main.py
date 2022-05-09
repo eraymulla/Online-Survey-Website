@@ -1,19 +1,18 @@
 from flask import Flask, jsonify
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with, request
 from flask_sqlalchemy import SQLAlchemy
-import requests
 
-
-# db and app configurations
-
+#region flask configurations
 app = Flask(__name__)
 app.debug = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost/surveyDb'
 db = SQLAlchemy(app)
 
-# Database Table Models
 
+#endregion
+
+#region Database Table Models
 class ParticipantUserModel(db.Model):
     __tablename__ = 'ParticipantUser'
     userId       =   db.Column(db.Integer, primary_key = True)
@@ -64,7 +63,7 @@ class PermissionModel(db.Model):
         self.id = id
         self.userId = userId
         self.permission = permission
-
+#endregion
 
 #region Admin Metodları
 @app.route('/admin',methods=['GET'])  # tüm admin userları çekmek için get metodu
@@ -121,7 +120,6 @@ def adminSignin():
 #endregion
 #endregion
 
-
 #region Participant Metodları
 
 @app.route('/participant',methods=['GET'])  # tüm participant userları çekmek için get metodu
@@ -176,8 +174,6 @@ def participantSignin():
     return 'kullanıcı adı ya da şifre yanlış',404
 #endregion
 #endregion
-
-
 
 
 

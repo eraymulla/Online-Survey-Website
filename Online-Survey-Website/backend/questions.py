@@ -1,8 +1,8 @@
-from crypt import methods
-
 from requests import request
+from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with, request
 from main import db,AdminUserModel,ParticipantUserModel,UsersModel,PermissionModel,app
 
+#region database modelleri
 class QuestionModel(db.Model):
     __tablename__ = 'Questions'
     questionId       =   db.Column(db.Integer, primary_key = True, )
@@ -34,11 +34,20 @@ class AnswerModel(db.Model):
         self.answerType = answerType
         self.categoryId = categoryId
         self.adminId = adminId
+#endregion
 
+#region metodlar
+@app.route('/test',methods=['GET'])
+def test():
+    print('test metoduna girdi')
+    return {
+        "message" : "questions.py'da ki test metodu"
+    }
 
-@app.route('/question',methods=['POST'])
+@app.route('/questions/addQuestion',methods=['POST'])
 def addQuestionAndAnswer():
     questionAndAnswerData = request.get_json()
+    print("------------",questionAndAnswerData,"---------------")
     # alınacak datada bulunacak değişkenler :  
     #questionId (AutoIncrement)
     # # 
@@ -47,3 +56,9 @@ def addQuestionAndAnswer():
     # categoryId (category tablosundan matchlemek için)
     # adminId (hangi adminin yazdığını bilebilmek için)
     # answer + adminId + answerType + questionId + categoryId(categoryId yazılmayadabilir) Answer tablosuna yazılacak
+    questionData = QuestionModel(questionId=questionAndAnswerData['questionId'],question=questionAndAnswerData['question'],answerType=questionAndAnswerData['answerType'],categoryId=questionAndAnswerData['categoryId'],adminId=questionAndAnswerData['adminId'])
+    answerData = AnswerModel(answerId=questionAndAnswerData['answerId'],questionId=questionAndAnswerData['questionId'],answer=questionAndAnswerData['answer'], answerType=questionAndAnswerData['answerType'],categoryId=questionAndAnswerData['categoryId'], adminId=questionAndAnswerData['adminId'])
+    print(questionData,"\n",answerData)
+    return "Soru eklendi",201
+
+#endregion
