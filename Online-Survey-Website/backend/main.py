@@ -2,17 +2,16 @@ from flask import Flask, jsonify
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with, request
 from flask_sqlalchemy import SQLAlchemy
 
+
 #region flask configurations
 app = Flask(__name__)
 app.debug = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost/surveyDb'
 db = SQLAlchemy(app)
-
-
 #endregion
 
-#region Database Table Models
+#region Database User Table Models
 class ParticipantUserModel(db.Model):
     __tablename__ = 'ParticipantUser'
     userId       =   db.Column(db.Integer, primary_key = True)
@@ -177,6 +176,118 @@ def participantSignin():
 
 
 
+#region question database modelleri
+class QuestionModel(db.Model):
+    __tablename__ = 'Questions'
+    questionId       =   db.Column(db.Integer, primary_key = True, )
+    question         =   db.Column(db.String(), nullable=False)
+    answerType       =   db.Column(db.Integer, nullable=False)
+    categoryId       =   db.Column(db.Integer, nullable=True)
+    adminId          =   db.Column(db.Integer, nullable=False) 
+    
+    def __init__(self,questionId,question,answerType,categoryId,adminId):
+        self.questionId = questionId
+        self.question = question
+        self.answerType = answerType
+        self.categoryId = categoryId
+        self.adminId = adminId
+
+class AnswerModel(db.Model):
+    __tablename__ = 'Answers'
+    answerId         =   db.Column(db.Integer, primary_key = True)
+    questionId       =   db.Column(db.Integer, nullable=False)
+    answer           =   db.Column(db.String(), nullable=False)
+    answerType       =   db.Column(db.Integer, nullable=False)
+    categoryId       =   db.Column(db.Integer, nullable=True)
+    adminId          =   db.Column(db.Integer, nullable=False) 
+    
+    def __init__(self,answerId,questionId,answer,answerType,categoryId,adminId):
+        self.answerId = answerId
+        self.questionId = questionId
+        self.answer = answer
+        self.answerType = answerType
+        self.categoryId = categoryId
+        self.adminId = adminId
+#endregion
+
+
+#region question metodları
+@app.route('/addQuestion',methods=['POST'])
+def addQuestionAndAnswer():
+    questionAndAnswerData = request.get_json()
+    print("------------",questionAndAnswerData,"---------------")
+    # alınacak datada bulunacak değişkenler :  
+    # questionId (AutoIncrement)
+    # question(String), 
+    # answerType(answerType tablosuna da yazılacak)
+    # categoryId (category tablosundan matchlemek için)
+    # adminId (hangi adminin yazdığını bilebilmek için)
+    # answerId 
+    # answer
+    questionData = QuestionModel(questionId=questionAndAnswerData['questionId'],question=questionAndAnswerData['question'],answerType=questionAndAnswerData['answerType'],categoryId=questionAndAnswerData['categoryId'],adminId=questionAndAnswerData['adminId'])
+    answerData = AnswerModel(answerId=questionAndAnswerData['answerId'],questionId=questionAndAnswerData['questionId'],answer=questionAndAnswerData['answer'], answerType=questionAndAnswerData['answerType'],categoryId=questionAndAnswerData['categoryId'], adminId=questionAndAnswerData['adminId'])
+    print(questionData.questionId,questionData.question,"\n",answerData.answerId,answerData.questionId,answerData.answer)
+    db.session.add(questionData)
+    db.session.commit()
+    db.session.add(answerData)
+    db.session.commit()
+    return "Soru eklendi",201
+
+
+@app.route('/getQuestion',methods=['GET'])
+def getAllQuestionAndAnswers():
+    questions = QuestionModel.query.all()
+    output = []
+    for question in questions:
+        tempQuestion = {}
+        tempQuestion['questionId'] = question.questionId
+        tempQuestion['question'] = question.question
+        tempQuestion['answerType'] = question.answerType
+        tempQuestion['categoryId'] = question.categoryId
+        tempQuestion['adminId'] = question.adminId
+        output.append(tempQuestion)
+    
+    answers = AnswerModel.query.all()
+    for answer in answers:
+        tempAnswer = {}
+        tempAnswer['answerId'] = answer.answerId
+        tempAnswer['questionId'] = answer.questionId
+        tempAnswer['answer'] = answer.answer
+        tempAnswer['categoryId'] = answer.categoryId
+        tempAnswer['adminId'] = answer.adminId
+        output.append(tempAnswer)
+    
+    return jsonify(output)
+
+@app.route('/getQuestionById/<int:questionId>',methods=['GET'])   # question id parametresi ile soru ve o soruya ait cevapları döndürür
+def getQuestionAndAnswerById(questionId):
+    output = []
+    question = QuestionModel.query.filter_by(questionId = questionId).first_or_404()
+    tempQuestion = {}
+    tempQuestion['questionId'] = question.questionId
+    tempQuestion['question'] = question.question
+    tempQuestion['answerType'] = question.answerType
+    tempQuestion['categoryId'] = question.categoryId
+    tempQuestion['adminId'] = question.adminId
+    output.append(tempQuestion)
+    #return jsonify(tempQuestion)
+    answer = AnswerModel.query.filter_by(questionId = questionId).first_or_404()
+    tempAnswer = {}
+    tempAnswer['answerId'] = answer.answerId
+    tempAnswer['questionId'] = answer.questionId
+    tempAnswer['answer'] = answer.answer
+    tempAnswer['categoryId'] = answer.categoryId
+    tempAnswer['adminId'] = answer.adminId
+    output.append(tempAnswer)
+    return jsonify(output)
+    
+    
+    
+    
+        
+    
+
+#endregion
 
 
 if __name__ == "__main__":
