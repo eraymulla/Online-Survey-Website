@@ -1,218 +1,461 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify,Blueprint
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+import json
+#from users import users
+
+#import questions  
+from flask_mail import Mail,Message
+from sqlalchemy import JSON
+
 
 
 #region flask configurations
 app = Flask(__name__)
+
+
+#app.register_blueprint(users, url_prefix="")
+
+
+#app.register_blueprint(questions.questions, url_prefix="")
+mail = Mail(app)
 app.debug = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost/surveyDb'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/surveyDb'
 db = SQLAlchemy(app)
-#endregion
 
+CORS(app,resources={r"/*":{'origins':"*"}})
+
+
+
+#endregion
+@app.route("/mailSend",methods=['GET'])
+def index():
+#şifre değiştirme için mail yönlendirme denemesi
+    msg = Message("Deneme mail",
+                  sender="eraymulla0@gmail.com",
+                  recipients=["denememail@gmail.com"])
+
+    mail.send(msg)
 #region Database User Table Models
+
 class ParticipantUserModel(db.Model):
     __tablename__ = 'ParticipantUser'
-    userId       =   db.Column(db.Integer, primary_key = True)
+    userId       =   db.Column(db.Integer, primary_key = True, autoincrement=True)
     name         =   db.Column(db.String(20), nullable=False)
     surname      =   db.Column(db.String(20), nullable=False)
     email        =   db.Column(db.String(40), nullable=False)
+    phone        =   db.Column(db.String(20),nullable=False)
     password     =   db.Column(db.String(20), nullable=False)
     permissionId =   db.Column(db.Integer, nullable=False) 
-    
-    def __init__(self,userId,name,surname,email,password,permissionId):
-        self.userId = userId
+    studentOrEmployee = db.Column(db.Integer, nullable=False)  # 1 değeri öğrenci 2 değeri çalışanı temsil eder
+    def __init__(self,name,surname,email,phone,password,permissionId,studentOrEmployee):
+        #self.userId = userId
         self.name = name
         self.surname = surname
         self.email = email
+        self.phone = phone
         self.password = password
         self.permissionId = permissionId
+        self.studentOrEmployee = studentOrEmployee
 
 class AdminUserModel(db.Model):
     __tablename__ = 'AdminUser'
-    userId       =   db.Column(db.Integer, primary_key = True)
+    userId       =   db.Column(db.Integer, primary_key = True, autoincrement=True)
     name         =   db.Column(db.String(20), nullable=False)
     surname      =   db.Column(db.String(20), nullable=False)
     email        =   db.Column(db.String(40), nullable=False)
+    phone        =   db.Column(db.String(20),nullable=False)
     password     =   db.Column(db.String(20), nullable=False)
-    permissionId =   db.Column(db.Integer, nullable=False)
-    def __init__(self,userId,name,surname,email,password,permissionId):
-        self.userId = userId
+    permissionId =   db.Column(db.Integer, nullable=False)  # 2 değeri admin olduğunu belirtir
+    studentOrEmployee = db.Column(db.Integer, nullable=False)  # 1 değeri öğrenci 2 değeri çalışanı temsil eder
+    
+    def __init__(self,name,surname,email,phone,password,permissionId,studentOrEmployee):
         self.name = name
         self.surname = surname
         self.email = email
+        self.phone = phone
         self.password = password
         self.permissionId = permissionId
+        self.studentOrEmployee = studentOrEmployee
 
-class UsersModel(db.Model):
-    __tablename__ = 'Users'
-    userId       =   db.Column(db.Integer, primary_key = True)
+# admin kullanıcı bir öğrenci ya da bir çalışan olabilir bu yüzden tablolarda permissionId de tutulmaktadır.
+
+#region student info tabloları 
+class StudentUserInfoModel(db.Model):
+    __tablename__ = 'StudentUserInfo'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    userId       =   db.Column(db.Integer, nullable = False)
     permissionId =   db.Column(db.Integer, nullable=False)
-    def __init__(self,userId,permissionId):
+    age = db.Column(db.Integer, nullable=False)
+    educationStatus = db.Column(db.Integer, nullable=False)
+    department = db.Column(db.String(50), nullable=True) # üniversite ise bölümü
+    year = db.Column(db.String(10), nullable=True) # üniversite kaçıncı sınıf olduğu bilgisini tutar
+
+    def __init__(self,userId,permissionId,age,educationStatus,department,year):
         self.userId = userId
         self.permissionId = permissionId
+        self.age = age
+        self.educationStatus = educationStatus
+        self.department = department
+        self.year = year
 
-class PermissionModel(db.Model):
+class EducationStatusModel(db.Model):  # NORMALİZASYON TABLOSU (ortaokul, lise, üniversite değelerini tutar)
+    __tablename__ = 'EducationStatus'
+    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
+    educationStatus = db.Column(db.String(20), nullable=False)
+    educationStatusTitle = db.Column(db.String(30),nullable=False)
+    def __init__(self,educationStatus,educationStatusTitle):
+        self.educationStatus = educationStatus
+        self.educationStatusTitle = educationStatusTitle
+#endregion
+
+#region employee info tabloları
+class EmployeeUserInfoModel(db.Model):
+    __tablename__ = 'EmployeeUserInfo'
+    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
+    userId       =   db.Column(db.Integer, nullable=False)
+    permissionId =   db.Column(db.Integer, nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    salary = db.Column(db.Integer, nullable=True)  # kullanıcılara açılacak anketlerde maaş aralığına göre kullanıcı seçebilmek için ZORUNLU DEĞİL
+    experience = db.Column(db.Integer, nullable=False) # kullanıcının kaç yıllık deneyimi olduğunu tutar ZORUNLU
+    
+    def __init__(self,userId,permissionId,age,salary,experience):
+        self.userId = userId
+        self.permissionId = permissionId
+        self.age = age
+        self.salary = salary
+        self.experience = experience
+
+class PermissionModel(db.Model):  # NORMALİZASYON TABLOSU
     __tablename__ = 'Permissions'
-    id           =   db.Column(db.Integer, primary_key = True)
+    id           =   db.Column(db.Integer, primary_key = True, autoincrement=True)
     userId       =   db.Column(db.Integer)
     permission   =   db.Column(db.String(20), nullable=False)
-    def __init__(self,id,userId,permission):
-        self.id = id
+    def __init__(self,userId,permission):
         self.userId = userId
         self.permission = permission
 #endregion
+#endregion
 
-#region Admin Metodları
-@app.route('/admin',methods=['GET'])  # tüm admin userları çekmek için get metodu
-def getAdmin():
+#region Database Survey Table Models
+#class SurveyModel(db.Model):
+
+#endregion
+
+#region  PARTICIPANT VE ADMIN ORTAK METODLARI
+
+
+@app.route('/Login',methods=['POST'])    # participant ve admin ortak giriş kontrol metodu
+def Login():
+    checkUser = request.get_json() 
+    print("-------------------")
+    print(checkUser) 
+    print("-------------------")
+    allParticipants = ParticipantUserModel.query.all()
+    userPermissionId = 0
+    for participant in allParticipants:
+        if participant.email == checkUser['email'] and participant.password == checkUser['password']:
+            userPermissionId = participant.permissionId
+            message = "Katılımcı Girişi Başarılı"
+            dataDict = {"loginCheck" : True, "message":message, "userPermissionId": userPermissionId,"email": participant.email, "name":participant.name, "surname":participant.surname, "phone":participant.phone}
+            dataJSON = json.dumps(dataDict)
+            print(dataJSON)
+            return dataJSON,201
+        #else:
+            #userPermissionId = -1
+    #if userPermissionId == -1:
     allAdmins = AdminUserModel.query.all()
-    output = []
     for admin in allAdmins:
-        tempAdmin = {}
-        tempAdmin['userId'] = admin.userId
-        tempAdmin['name'] = admin.name
-        tempAdmin['surname'] = admin.surname
-        tempAdmin['email'] = admin.email
-        tempAdmin['password'] = admin.password
-        tempAdmin['permissionId'] = admin.permissionId
-        output.append(tempAdmin)
-    return jsonify(output)
+        if admin.email == checkUser['email'] and admin.password == checkUser['password']:
+            userPermissionId = admin.permissionId
+            message = "Admin Girişi Başarılı"
+            dataDict = {"loginCheck" : True, "message":message, "userPermissionId": userPermissionId,"email": admin.email, "name":admin.name, "surname":admin.surname, "phone":admin.phone}
+            dataJSON = json.dumps(dataDict)
+            print(dataJSON)
+            return dataJSON,201
+    message = 'kullanıcı emaili ya da şifre yanlış'
+    dataDict = {"loginCheck" : True, "message":message}
+    dataJSON = json.dumps(dataDict)
+    return dataJSON,201
 
-@app.route('/admin/<int:id>',methods=['GET'])  # idye göre admin datası çekme metodu
-def getAdminById(id):
-    
-    checkAdmin = AdminUserModel.query.filter_by(userId = id).first_or_404()
-    return checkAdmin.name,201
-
-
-#region admin post metodları
-@app.route('/adminLogin',methods=['POST'])  # admin kayıt için post metodu
-def adminLogin():
-    adminData = request.get_json()  #post requestten admin datalarını aldık
+# admine ve participant kayıt olma metodu
+@app.route('/Signup', methods=['POST'])  # ortak kayıt olma metodu
+def Signup():
+    data = request.get_json()
+    print(data["name"],data["surname"],data["email"],data["phone"],data["password"],data["permissionId"],data["studentOrEmployee"])
     admins = AdminUserModel.query.all()
-    newId = 0
-    for admin in admins:
-        if admin.userId > newId:
-            newId = admin.userId  
-    newAdmin = AdminUserModel(newId+1,name=adminData['name'],surname=adminData['surname'],email=adminData['email'],password=adminData['password'],permissionId=2)
-    db.session.add(newAdmin)
-    db.session.commit()
-    return "Kullanıcı ekleme işlemi başarılı",201
-
-@app.route('/adminSignin',methods=['POST'])    # admin giriş kontrol metodu
-def adminSignin():
-    checkAdmin = request.get_json() 
-    print("-------------------")
-    print(checkAdmin) 
-    print("-------------------")
-    allAdmins = AdminUserModel.query.all()
-    for admin in allAdmins:
-        print(admin.email, admin.password)    # tablodaki bütün admin değerlerinin email ve password bilgileri
-    print("-------------------")
-    for admin in allAdmins:
-        if admin.email == checkAdmin['email'] and admin.password == checkAdmin['password']:
-            #abort(201,message="Admin sign in successfully")
-            return 'Giriş başarılı',201
-    return 'kullanıcı adı ya da şifre yanlış',404
-#endregion
-#endregion
-
-#region Participant Metodları
-
-@app.route('/participant',methods=['GET'])  # tüm participant userları çekmek için get metodu
-def getParticipant():
-    allParticipants = ParticipantUserModel.query.all()
-    output = []
-    for admin in allParticipants:
-        tempParticipant = {}
-        tempParticipant['userId'] = admin.userId
-        tempParticipant['name'] = admin.name
-        tempParticipant['surname'] = admin.surname
-        tempParticipant['email'] = admin.email
-        tempParticipant['password'] = admin.password
-        tempParticipant['permissionId'] = admin.permissionId
-        output.append(tempParticipant)
-    return jsonify(output)
-
-@app.route('/participant/<int:id>',methods=['GET'])  # idye göre admin datası çekme metodu
-def getParticipantById(id):
-    print("------------metoddan gelen id değeri : ",id,"-------------")
-    checkParticipant = ParticipantUserModel.query.filter_by(userId = id).first_or_404()
-    return checkParticipant.name,201
-
-#region participant post metodları
-@app.route('/participantLogin',methods=['POST'])  # admin kayıt için post metodu
-def participantLogin():
-    participantData = request.get_json()  #post requestten admin datalarını aldık
     participants = ParticipantUserModel.query.all()
-    newId = 0
-    for participant in participants:
-        if participant.userId > newId:
-            newId = participant.userId  
-    newParticipant = ParticipantUserModel(newId+1,name=participantData['name'],surname=participantData['surname'],email=participantData['email'],password=participantData['password'],permissionId=2)
-    db.session.add(newParticipant)
-    db.session.commit()
-    return "Kullanıcı ekleme işlemi başarılı",201
+    newId = -1
+    if data['permissionId'] == "2":
+        for admin in admins:
+            if admin.email == data['email']:
+                if admin.phone == data['phone']:
+                    return "Bu telefon numarası zaten kayıtlı",200
+                return "Bu email zaten kayıtlı",200
+        newAdmin = AdminUserModel(name=data['name'],surname=data['surname'],email=data['email'],phone=data['phone'],password=data['password'],permissionId=2,studentOrEmployee=data['studentOrEmployee'])
+        db.session.add(newAdmin)
+        db.session.commit()
+        dataDict = {"message":"Adminin diğer bilgileri alınabilir","check": True,"userId": newAdmin.userId}
+        dataJson = json.dumps(dataDict)
+        return dataJson,201
+    if data['permissionId'] == "1":
+        for participant in participants:
+            if participant.email == data['email']:
+                if participant.phone == data['phone']:
+                    return "Bu telefon numarası zaten kayıtlı",200
+                return "Bu email zaten kayıtlı",200
+        newParticipant = ParticipantUserModel(name=data['name'],surname=data['surname'],email=data['email'],phone=data['phone'],password=data['password'],permissionId=1,studentOrEmployee=data['studentOrEmployee'])
+        db.session.add(newParticipant)
+        db.session.commit()
+        dataDict = {"message":"Katılımcının diğer bilgileri alınabilir","check": True, "userId": newParticipant.userId}
+        dataJson = json.dumps(dataDict)
+        return dataJson,201
+    return "kullanıcı ekleme başarısız",202
+    
 
-@app.route('/participantSignin',methods=['POST'])    # admin giriş kontrol metodu
-def participantSignin():
-    checkParticipant = request.get_json() 
-    print("-------------------")
-    print(checkParticipant) 
-    print("-------------------")
-    allParticipants = ParticipantUserModel.query.all()
-    for participant in allParticipants:
-        print(participant.email, participant.password)    # tablodaki bütün admin değerlerinin email ve password bilgileri
-    print("-------------------")
-    for participant in allParticipants:
-        if participant.email == checkParticipant['email'] and participant.password == checkParticipant['password']:
-            #abort(201,message="Admin sign in successfully")
-            return 'Giriş başarılı',201
-    return 'kullanıcı adı ya da şifre yanlış',404
+@app.route('/addInfo',methods=['POST'])
+def addInfo():
+    data = request.get_json()
+    #
+    # Kullanıcın email ve phone nosuna göre idsini al #
+    print(data['permissionId'])
+    if data['studentOrEmployee'] == 1:  # 1 değeri öğrenci olduğunu belirtir
+        studentInfo = StudentUserInfoModel(userId=data['userId'],permissionId=data['permissionId'],age=data['age'],educationStatus=data['educationStatus'],department=data['department'],year=data['grade'])
+        db.session.add(studentInfo)
+        db.session.commit()
+        return "Öğrenci user ekleme işlemi başarıyla tamamlandı",201
+    elif data['studentOrEmployee'] == 2: # 2 değeri çalışan olduğunu belirtir
+        employeeInfo = EmployeeUserInfoModel(userId=data['userId'],permissionId=data['permissionId'],age=data['age'],salary=data['salary'],experience=data['experience'])
+        db.session.add(employeeInfo)
+        db.session.commit()
+        return "Çalışan user ekleme işlemi başarıyla tamamlandı",201
+    else:
+        return "user ekleme işlemi başarısız",200
+
+
+@app.route('/verifyEmail', methods=['POST'])
+def verifyEmail():
+    data = request.get_json()
+    isEmailExist = 0
+    participantEmails = ParticipantUserModel.query.all()
+    adminEmails = AdminUserModel.query.all()
+    dataDict = {}
+
+    for email in adminEmails:
+        if email.email == data['email']:
+            isEmailExist = 1
+
+            dataDict = {"isVerifyEmail" : isEmailExist, "email": email.email, "name":email.name, "surname":email.surname, "phone":email.phone}
+            dataJSON = json.dumps(dataDict)
+            print(dataJSON)
+            return dataJSON,201
+        else:
+            isEmailExist = 0
+    if isEmailExist != 1:
+        for email in participantEmails:
+            if email.email == data['email']:
+                isEmailExist = 1
+                dataDict = {"isVerifyEmail" : True, "email": email.email, "name":email.name, "surname":email.surname, "phone":email.phone}
+                dataJSON = json.dumps(dataDict)
+                print(dataJSON)
+                return dataJSON,201
+            else:
+                dataDict = {"isVerifyEmail" : False, "message": "kayıt bulunamadı."}
+                dataJSON = json.dumps(dataDict)
+                return dataJSON,202
+
+@app.route('/changePassword',methods=['POST'])
+def changePassword():
+    data = request.get_json()
+    participantEmails = ParticipantUserModel.query.all()
+    adminEmails = AdminUserModel.query.all()
+    for pEmail in participantEmails:
+        if data['email'] == pEmail.email:
+            pEmail.password = data['newPassword']
+            db.session.add(pEmail)
+            db.session.commit()
+            dataDict = {"isMatchedPassword" : True}
+            dataJSON = json.dumps(dataDict)
+            return dataJSON,201
+    for aEmail in adminEmails:
+        if data['email'] == aEmail.email:
+            aEmail.password = data['newPassword']
+            db.session.add(aEmail)
+            db.session.commit()
+            dataDict = {"isMatchedPassword" : True}
+            dataJSON = json.dumps(dataDict)
+            return dataJSON,201
+    return "Şifre değiştirilemedi.",202
+    
+    
+
 #endregion
-#endregion
+#-------------------------------------------------------- QUESTION ANSWER SECTION
 
-
-
-#region question database modelleri
+#region question-answer-choice ve survey database modelleri
 class QuestionModel(db.Model):
     __tablename__ = 'Questions'
-    questionId       =   db.Column(db.Integer, primary_key = True, )
+    questionId       =   db.Column(db.Integer, primary_key = True, autoincrement=True )
     question         =   db.Column(db.String(), nullable=False)
     answerType       =   db.Column(db.Integer, nullable=False)
-    categoryId       =   db.Column(db.Integer, nullable=True)
+    categoryId       =   db.Column(db.Integer, nullable=True) # kullanılmayacak
     adminId          =   db.Column(db.Integer, nullable=False) 
     
-    def __init__(self,questionId,question,answerType,categoryId,adminId):
-        self.questionId = questionId
+    def __init__(self,question,answerType,categoryId,adminId):
         self.question = question
         self.answerType = answerType
         self.categoryId = categoryId
         self.adminId = adminId
 
+#region Survey tabloları
+class SurveyModel(db.Model):  # Anketlere ait spesifik bilgiler bu tabloda tutulur
+    __tablename__ = 'Survey'
+    surveyId  = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    surveyName = db.Column(db.String(), nullable=False)
+    surveyDescription = db.Column(db.String(), nullable=False)
+    adminId = db.Column(db.Integer, nullable=False)
+    def __init__(self,surveyName,surveyDescription,adminId):
+        self.surveyName = surveyName
+        self.surveyDescription = surveyDescription
+        self.adminId = adminId
+
+
+class SurveyQuestionsModel(db.Model): # Anket idsi ile soru idleri ortak kullanılarak ankete ait sorular tutulacak
+    __tablename__ = 'SurveyQuestions' 
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    surveyId = db.Column(db.Integer, nullable=False)
+    questionId = db.Column(db.Integer, nullable=False)
+    adminId = db.Column(db.Integer, nullable=False)
+
+    def __init__(self,surveyId,questionId,adminId):
+        self.surveyId=surveyId
+        self.questionId=questionId
+        self.adminId=adminId
+
+class SurveyParticipantModel(db.Model): # Anket idsi ile soru idleri ortak kullanılarak ankete ait sorular tutulacak
+    __tablename__ = 'SurveyParticipant' 
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    surveyId = db.Column(db.Integer, nullable=False)
+    participantId = db.Column(db.Integer, nullable=False)
+    adminId = db.Column(db.Integer, nullable=False)
+    def __init__(self,surveyId,participantId,adminId):
+        self.surveyId=surveyId
+        self.participantId=participantId
+        self.adminId=adminId
+#endregion
+
 class AnswerModel(db.Model):
     __tablename__ = 'Answers'
-    answerId         =   db.Column(db.Integer, primary_key = True)
+    answerId         =   db.Column(db.Integer, primary_key = True, autoincrement=True)
     questionId       =   db.Column(db.Integer, nullable=False)
-    answer           =   db.Column(db.String(), nullable=False)
+    answers           =   db.Column(db.String(), nullable=True)  # soru açık uçlu değilse diğer tablolarda tutulacağı için nullable = true fakat soru çoktan seçmeliyse null değer alamaz!
     answerType       =   db.Column(db.Integer, nullable=False)
     categoryId       =   db.Column(db.Integer, nullable=True)
     adminId          =   db.Column(db.Integer, nullable=False) 
+    surveyId         =   db.Column(db.Integer, nullable=False)
     
-    def __init__(self,answerId,questionId,answer,answerType,categoryId,adminId):
-        self.answerId = answerId
+    def __init__(self,questionId,answer,answerType,categoryId,adminId,surveyId):
         self.questionId = questionId
         self.answer = answer
         self.answerType = answerType
         self.categoryId = categoryId
         self.adminId = adminId
+        self.surveyId = surveyId
+
+class AnswerTypeModel(db.Model):
+    __tablename__ = 'AnswerTypes'
+    id         =   db.Column(db.Integer, primary_key = True, autoincrement=True)
+    answerType = db.Column(db.String(10), nullable=False)  #sorunun çoktan seçmeli, yes-no, açık uçlu bilgilerinin normalizasyon tablosu
+
+    def __init__(self,answerType):
+        self.answerType = answerType
+
+
+class CloseEndedAnswerModel(db.Model): # Şıklı sorular için bütün şıkların tutulduğu tablo
+    __tablename__ = 'AnswersOfQuestion'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    answerId =   db.Column(db.Integer, nullable=False)
+    questionId = db.Column(db.Integer, nullable=False)
+    optionId = db.Column(db.Integer, nullable=False) # a şıkkı b şıkkı bilgisi
+    answer = db.Column(db.String(), nullable=False) # seçilen şıkka ait cevap
+
+    def __init__(self,answerId,questionId,optionId,answer):
+        self.answerId = answerId
+        self.questionId = questionId
+        self.optionId = optionId
+        self.answer = answer
+
+
+class OptionModel(db.Model): # Şıkların tutulduğu normalizasyon tablosu ( a, b, c, d, e şıkları ve ya 1, 2, 3, 4, 5 şeklinde şıklar tutulacak ve AnswersOfQuestions tablosunda idlerine göre kullanılacak)
+    __tablename__ = 'Options'
+    optionId =   db.Column(db.Integer, primary_key=True, autoincrement=True)
+    option =     db.Column(db.String(), nullable=False) # a şıkkı b şıkkı bilgisi
+
+    def __init__(self,option):
+        self.option = option
+
+
+                            # kullanıcının verdiği cevaplar "choice", soruya ait bütün şıkların her biri "answer" olarak adlandırılmıştır.
+                            # multiplechoice için her bir şıkların ayrı ayrı tutulduğu bir şıklar tablosu olacak multipleChoiceId ve questionId ile sorunun şıkları çekilecek
+  
+
+class ChoiceModel(db.Model):  # kullanıcının verdiği cevaplar cevap şekline göre aşağıda ki üç tabloda tutulacak
+    __tablename__ = 'Choices'
+    id =   db.Column(db.Integer, primary_key=True, autoincrement=True)
+    questionId = db.Column(db.Integer, nullable=False)  # cevabın hangi soruya ait olduğunun bilgisini tutacak
+    participantId = db.Column(db.Integer, nullable=False) # cevabın hangi katılımcıya ait olduğu bilgisini tutacak
+    answerTypeId = db.Column(db.Integer, nullable=False)  # answerTypeId ile cevabın hangi tabloya yazılacağı seçilecek
+
+    def __init__(self,questionId,participantId,answerTypeId):
+        self.questionId = questionId
+        self.participantId = participantId
+        self.answerTypeId = answerTypeId    # 1 ise Yes no , 2 ise OpenEnded , 3 ise Close Ended tablosuna yazılacak
+
+class YesNoChoiceModel(db.Model):   # kullanıcının evet hayır soru cevapları
+    __tablename__ = 'YesNoChoices'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    questionId = db.Column(db.Integer, nullable=False)  # cevabın hangi soruya ait olduğunun bilgisini tutacak
+    participantId = db.Column(db.Integer, nullable=False) # cevabın hangi katılımcıya ait olduğu bilgisini tutacak
+    choice  = db.Column(db.Boolean, nullable = False)   # evetse 1 hayırsa 0
+
+    def __init__(self,questionId,participantId,choice):
+        self.questionId = questionId
+        self.participantId = participantId
+        self.choice = choice
+
+class OpenEndedChoiceModel(db.Model):  # kullanıcının açık uçlu soru cevapları
+    __tablename__ = 'OpenEndedAnswers'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    questionId = db.Column(db.Integer, nullable=False)  # cevabın hangi soruya ait olduğunun bilgisini tutacak
+    participantId = db.Column(db.Integer, nullable=False) # cevabın hangi katılımcıya ait olduğu bilgisini tutacak
+    choice  = db.Column(db.String(400), nullable = False)   # kullanıcının açık uçlu soru cevabının tutulacağı kolon
+
+    def __init__(self,questionId,participantId,choice):
+        self.questionId = questionId
+        self.participantId = participantId
+        self.choice = choice
+
+
+class CloseEndedChoiceModel(db.Model): # kullanıcının çok şıklı sorulara verdiği cevapların tutulduğu tablo
+    __tablename__ = 'CloseEndedChoices'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    questionId = db.Column(db.Integer, nullable=False)  # cevabın hangi soruya ait olduğunun bilgisini tutacak
+    participantId = db.Column(db.Integer, nullable=False) # cevabın hangi katılımcıya ait olduğu bilgisini tutacak
+    choice  = db.Column(db.Integer, nullable = False)   # kullanıcının şıklı sorulara vereceği cevap tutulacak (optionId ile hangi şık olduğunu tutacak)
+
+    def __init__(self,questionId,participantId,choice):
+        self.questionId = questionId
+        self.participantId = participantId
+        self.choice = choice
+
 #endregion
 
 
 #region question metodları
-@app.route('/addQuestion',methods=['POST'])
+@app.route('/addQuestion',methods=['POST'])  #soru ekleme post metodu KOMPLE DEĞİŞECEK
 def addQuestionAndAnswer():
     questionAndAnswerData = request.get_json()
     print("------------",questionAndAnswerData,"---------------")
@@ -234,7 +477,7 @@ def addQuestionAndAnswer():
     return "Soru eklendi",201
 
 
-@app.route('/getQuestion',methods=['GET'])
+@app.route('/getQuestion',methods=['GET'])  
 def getAllQuestionAndAnswers():
     questions = QuestionModel.query.all()
     output = []
@@ -281,13 +524,20 @@ def getQuestionAndAnswerById(questionId):
     output.append(tempAnswer)
     return jsonify(output)
     
-    
-    
-    
-        
-    
 
+@app.route('/addSurvey',methods=['POST'])
+def addSurvey():
+    data = request.get_json()
+    survey = SurveyModel(surveyName=data['surveyName'],surveyDescription=data['surveyDescription'],adminId=data['adminId'])
+    db.session.add(survey)
+    db.session.commit()
+    dataDict = {"message": "Anket eklendi","surveyId":survey.surveyId}
+    dataJSON = json.dumps(dataDict)
+    return dataJSON,201
 #endregion
+
+#--------------------------------------------------------------------------------
+
 
 
 if __name__ == "__main__":

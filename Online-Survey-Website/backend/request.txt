@@ -1,0 +1,49 @@
+# bir üniversite öğrencisi admin user ekleme request örneği   
+
+Method URI =>  127.0.01:5000/Signup
+{
+    "name" : "",
+    "surname" : "",
+    "email" : "",
+    "phone" : "",
+    "password" : "",
+    "permissionId" : 2,
+    "studentOrEmployee" : 1,
+}
+
+Frontend tarafına dönen diğer bilgiler alınabilir mesajının ardından 
+
+Method URI => 127.0.01:5000/addInfo
+{
+    "userId" = ,   # yukardaki metodda eklenen kullanıcın idsi bu metodda kullanılır
+    "permissionId" = 2,
+    "age" = ,
+    "educationStatus" = 2,
+    "department" = Computer Science,
+    "year" = 4,
+}
+
+
+--------------------------------------------------------------------------------
+# bir ortaokul öğrencisi admin user ekleme request örneği   
+
+Method URI =>  127.0.01:5000/Signup
+{
+    "name" : "",
+    "surname" : "",
+    "email" : "",
+    "phone" : "",
+    "password" : "",
+    "permissionId" : 2,
+    "studentOrEmployee" : 1,
+}
+
+Frontend tarafına dönen diğer bilgiler alınabilir mesajının ardından 
+
+Method URI => 127.0.01:5000/addInfo
+{
+    "userId" = ,   # yukardaki metodda eklenen kullanıcın idsi bu metodda kullanılır
+    "permissionId" = 2,
+    "age" = ,
+    "educationStatus" = 2
+}

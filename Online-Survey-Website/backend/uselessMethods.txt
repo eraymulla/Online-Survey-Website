@@ -1,0 +1,54 @@
+#region Admin Metodları
+@app.route('/admin',methods=['GET'])  # tüm admin userları çekmek için get metodu
+def getAdmin():
+    print("getAdmin metoduna girdi")
+    allAdmins = AdminUserModel.query.all()
+    output = []
+    for admin in allAdmins:
+        tempAdmin = {}
+        tempAdmin['userId'] = admin.userId
+        tempAdmin['name'] = admin.name
+        tempAdmin['surname'] = admin.surname
+        tempAdmin['email'] = admin.email
+        tempAdmin['password'] = admin.password
+        tempAdmin['permissionId'] = admin.permissionId
+        output.append(tempAdmin)
+    return jsonify(output)
+
+
+    
+@app.route('/admin/<int:id>',methods=['GET'])  # idye göre admin datası çekme metodu
+def getAdminById(id):
+    
+    checkAdmin = AdminUserModel.query.filter_by(userId = id).first_or_404()
+    return checkAdmin.name,201
+#endregion
+
+
+
+
+#region Participant Metodları  ANKET OLUŞTURAN ADMİN ANKETİ KİMLERE TANIMLAYACAĞINI SEÇERKEN KULLANACAK
+
+@app.route('/participant',methods=['GET'])  # tüm participant userları çekmek için get metodu
+def getParticipant():
+    allParticipants = ParticipantUserModel.query.all()
+    output = []
+    for admin in allParticipants:
+        tempParticipant = {}
+        tempParticipant['userId'] = admin.userId
+        tempParticipant['name'] = admin.name
+        tempParticipant['surname'] = admin.surname
+        tempParticipant['email'] = admin.email
+        tempParticipant['password'] = admin.password
+        tempParticipant['permissionId'] = admin.permissionId
+        output.append(tempParticipant)
+    return jsonify(output)
+
+@app.route('/participant/<int:id>',methods=['GET'])  # idye göre participant datası çekme metodu
+def getParticipantById(id):
+    print("------------metoddan gelen id değeri : ",id,"-------------")
+    checkParticipant = ParticipantUserModel.query.filter_by(userId = id).first_or_404()
+    return checkParticipant.name,201
+
+
+#endregion
