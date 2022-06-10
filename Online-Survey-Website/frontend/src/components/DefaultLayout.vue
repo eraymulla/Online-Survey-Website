@@ -1,66 +1,87 @@
 <template>
-  <div>
-    <default-layout></default-layout>
-    <!--Anketlerin küçük şekilde görüneceği component-->
-    <div style="font-size: 30px; margin-left: 4rem; color: white">
-      Sayın {{ this.$store.state.mainPage.signedUser[0].name }}
-      {{ this.$store.state.mainPage.signedUser[0].surname }} Hoşgeldiniz
-    </div>
-    <div class="row surveyCompRow">
+  <div class="navbar-container">
+    <div class="nav row">
       <div
-        class="surveyComponentRow"
-        v-for="(survey, index) in this.$store.state.mainPage.surveyInfo"
-        :key="index"
+        @click="checkState()"
+        class="col-md-4 navHeader d-flex justify-content-start"
       >
-        <router-link to="/main-page">
-          <div  @click="findIndex(index+1)" class="oneComponent">
-            <h3 class="surveyName">{{ survey.surveyName }}</h3>
-            <p class="surveyDescription">{{ survey.surveyDescription }}</p>
-          </div>
-        </router-link>
+        <a href="#/main-page" class="mx-3"
+          ><img src="../../public/icons/main-logo.png"
+        /></a>
+      </div>
+      <div class="col-md-8 navItems d-flex">
+        <router-link v-if="this.$store.state.mainPage.signedUser[0].userPermissionId==2" to="/create-survey"
+          ><button class="navItem mx-4 btnMainPage">
+            Anket Oluştur
+          </button></router-link
+        >
+        <div class="input-group dropdownInput">
+          <button
+            class="navItem mx-4 btnMainPage"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Hesabım
+          </button>
+          <ul class="mainDropDown dropdown-menu dropdown-menu-end">
+            <router-link to="user-informations">
+              <li>
+                <a class="mainDropdownItem dropdown-item" href="#"
+                  >Hesap Bilgileri</a
+                >
+              </li>
+            </router-link>
+            <li><hr class="dropdown-divider" /></li>
+            <router-link to="/">
+              <li @click="resetState()">
+                <a class="mainDropdownItem dropdown-item" href="#">Çıkış Yap</a>
+              </li>
+            </router-link>
+          </ul>
+        </div>
       </div>
     </div>
     <shooting-star> </shooting-star>
   </div>
 </template>
 
+
 <script>
 /* eslint-disable */
-import DefaultLayout from "../components/DefaultLayout.vue";
 import ShootingStar from "../components/ShootingStar.vue";
+import ShowSurvey from "@/components/ShowSurvey.vue";
+import ShowAdminSurvey from "../components/ShowAdminSurvey.vue";
+import UserInformations from "./UserInformations.vue";
 
 export default {
-  data() {
-    return {
-      urlGetEmailList: "http://127.0.0.1:5000/getParticipants",
-      urlGetSurveyParticipants: "http://127.0.0.1:5000/getSurveyParticipants"
-    };
-  },
-  created() {
-    console.log("created worked");
-    this.$store.dispatch('mainPage/getEmailList', this.urlGetEmailList)
+  components: {
+    ShootingStar,
+    ShowSurvey,
+    ShowAdminSurvey,
+    UserInformations,
   },
   methods: {
-    findIndex(payload) {
-      console.log("index: ",payload)
-      this.$store.dispatch("answerSurvey/loadData",{index:payload, url:this.urlGetSurveyParticipants})
+    resetState() {
+      console.log("Çıkış yapıldı resetState çalıştı");
+      this.$store.dispatch("mainPage/resetState");
+    },
+    checkState() {
+      console.log("state: ", this.$store.state.mainPage.signedUser);
     },
   },
-  components: { DefaultLayout, ShootingStar },
 };
 </script>
 
+
 <style lang="scss" scoped>
-.surveyComponentContainer {
+.SurveyComponentContainer {
   display: flex;
   justify-content: center;
   resize: both;
   overflow: auto;
 }
-.surveyName {
-  white-space: pre-line;
-}
-.surveyComponentRow {
+.SurveyComponentRow {
   margin: 100px !important;
   padding: 30px;
   margin-top: 100px;

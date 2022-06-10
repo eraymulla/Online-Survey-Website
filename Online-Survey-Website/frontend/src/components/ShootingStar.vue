@@ -77,7 +77,7 @@ body {
 }
 
 .stars {
-  z-index:-1;
+  z-index:-90;
   position: absolute;
   overflow: hidden;
   top: 0;

@@ -1,8 +1,11 @@
+import re
+from secrets import choice
 from flask import Flask, jsonify,Blueprint
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import json
+from sqlalchemy.sql import text
 #from users import users
 
 #import questions  
@@ -23,7 +26,6 @@ mail = Mail(app)
 app.debug = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost/surveyDb'
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/surveyDb'
 db = SQLAlchemy(app)
 
 CORS(app,resources={r"/*":{'origins':"*"}})
@@ -33,10 +35,10 @@ CORS(app,resources={r"/*":{'origins':"*"}})
 #endregion
 @app.route("/mailSend",methods=['GET'])
 def index():
-#şifre değiştirme için mail yönlendirme denemesi
+
     msg = Message("Deneme mail",
                   sender="eraymulla0@gmail.com",
-                  recipients=["denememail@gmail.com"])
+                  recipients=["nezihcan.turgut@gmail.com"])
 
     mail.send(msg)
 #region Database User Table Models
@@ -155,27 +157,55 @@ def Login():
     print(checkUser) 
     print("-------------------")
     allParticipants = ParticipantUserModel.query.all()
+    allSurveyParticipants = SurveyParticipantModel.query.all()
+    allSurvey = SurveyModel.query.all()
     userPermissionId = 0
     for participant in allParticipants:
         if participant.email == checkUser['email'] and participant.password == checkUser['password']:
             userPermissionId = participant.permissionId
             message = "Katılımcı Girişi Başarılı"
-            dataDict = {"loginCheck" : True, "message":message, "userPermissionId": userPermissionId,"email": participant.email, "name":participant.name, "surname":participant.surname, "phone":participant.phone}
+            allSurvey = SurveyModel.query.all()
+            dataDict = {"loginCheck" : True, "surveyDatas" : [] , "message":message, "userPermissionId": userPermissionId,"email": participant.email, "name":participant.name, "surname":participant.surname, "phone":participant.phone}
+            for surveyParticipant in allSurveyParticipants:
+                if participant.userId == surveyParticipant.participantId:
+                    for survey in allSurvey:
+                        if survey.surveyId == surveyParticipant.surveyId:
+                            surveyDataDict = {"surveyId" : survey.surveyId, "surveyName" : survey.surveyName, "surveyDescription" : survey.surveyDescription}
+                            dataDict["surveyDatas"].append(surveyDataDict)
             dataJSON = json.dumps(dataDict)
             print(dataJSON)
-            return dataJSON,201
+            return dataDict,201
         #else:
             #userPermissionId = -1
     #if userPermissionId == -1:
     allAdmins = AdminUserModel.query.all()
+    adminCheck = False
     for admin in allAdmins:
         if admin.email == checkUser['email'] and admin.password == checkUser['password']:
+            adminCheck = True
             userPermissionId = admin.permissionId
+            allSurvey = SurveyModel.query.all()
+            surveyData = {}
             message = "Admin Girişi Başarılı"
-            dataDict = {"loginCheck" : True, "message":message, "userPermissionId": userPermissionId,"email": admin.email, "name":admin.name, "surname":admin.surname, "phone":admin.phone}
-            dataJSON = json.dumps(dataDict)
-            print(dataJSON)
-            return dataJSON,201
+            dataDict = {"loginCheck" : True,"surveyData" : [], "message":message, "userPermissionId": userPermissionId,"email": admin.email, "name":admin.name, "surname":admin.surname, "phone":admin.phone}
+            for surv in allSurvey:
+                if surv.adminId == admin.userId:
+                    surveyData = {
+                    "surveyId" : surv.surveyId,
+                    "surveyName" : surv.surveyName,
+                    "surveyDescription" : surv.surveyDescription 
+                    }
+                dataDict["surveyData"].append(surveyData)
+                print("********SurveyData",surveyData)      
+                surveyData = {}
+            #for survey in allSurvey:
+                #if survey.adminId == admin.userId:
+                    #surveyData.pop(survey)
+    if adminCheck == True:
+        print(surveyData)
+        #dataJSON = json.dumps(dataDict)
+        #print(dataJSON)
+        return dataDict,201
     message = 'kullanıcı emaili ya da şifre yanlış'
     dataDict = {"loginCheck" : True, "message":message}
     dataJSON = json.dumps(dataDict)
@@ -352,14 +382,14 @@ class AnswerModel(db.Model):
     answerId         =   db.Column(db.Integer, primary_key = True, autoincrement=True)
     questionId       =   db.Column(db.Integer, nullable=False)
     answers           =   db.Column(db.String(), nullable=True)  # soru açık uçlu değilse diğer tablolarda tutulacağı için nullable = true fakat soru çoktan seçmeliyse null değer alamaz!
-    answerType       =   db.Column(db.Integer, nullable=False)
+    answerType       =   db.Column(db.Integer, nullable=False)   # 1 değeri çoktan seçmeli , 2 değeri yes-no , 3 değeri açık uçlu
     categoryId       =   db.Column(db.Integer, nullable=True)
     adminId          =   db.Column(db.Integer, nullable=False) 
     surveyId         =   db.Column(db.Integer, nullable=False)
     
-    def __init__(self,questionId,answer,answerType,categoryId,adminId,surveyId):
+    def __init__(self,questionId,answers,answerType,categoryId,adminId,surveyId):
         self.questionId = questionId
-        self.answer = answer
+        self.answers = answers
         self.answerType = answerType
         self.categoryId = categoryId
         self.adminId = adminId
@@ -368,7 +398,7 @@ class AnswerModel(db.Model):
 class AnswerTypeModel(db.Model):
     __tablename__ = 'AnswerTypes'
     id         =   db.Column(db.Integer, primary_key = True, autoincrement=True)
-    answerType = db.Column(db.String(10), nullable=False)  #sorunun çoktan seçmeli, yes-no, açık uçlu bilgilerinin normalizasyon tablosu
+    answerType = db.Column(db.String(10), nullable=False)  #sorunun çoktan seçmeli, yes-no, açık uçlu bilgilerinin normalizasyon tablosu  - 1 çoktan seçmeli , 2 yes-no , 3 açık uçlu
 
     def __init__(self,answerType):
         self.answerType = answerType
@@ -412,7 +442,7 @@ class ChoiceModel(db.Model):  # kullanıcının verdiği cevaplar cevap şekline
     def __init__(self,questionId,participantId,answerTypeId):
         self.questionId = questionId
         self.participantId = participantId
-        self.answerTypeId = answerTypeId    # 1 ise Yes no , 2 ise OpenEnded , 3 ise Close Ended tablosuna yazılacak
+        self.answerTypeId = answerTypeId    #  1 çoktan seçmeli , 2 yes-no , 3 açık uçlu
 
 class YesNoChoiceModel(db.Model):   # kullanıcının evet hayır soru cevapları
     __tablename__ = 'YesNoChoices'
@@ -476,7 +506,21 @@ def addQuestionAndAnswer():
     db.session.commit()
     return "Soru eklendi",201
 
-
+@app.route("/getParticipants", methods=["GET"])
+def getParticipants():
+    respDatas = ParticipantUserModel.query.all()
+    participantList = {"data" : []}
+    for respData in respDatas:
+        data = {
+        "participantId" : respData.userId,
+        "name" : respData.name,
+        "surname" : respData.surname,
+        "email" : respData.email,
+        "phone" : respData.phone
+        }
+        participantList["data"].append(data)
+    return participantList,201
+    
 @app.route('/getQuestion',methods=['GET'])  
 def getAllQuestionAndAnswers():
     questions = QuestionModel.query.all()
@@ -525,13 +569,157 @@ def getQuestionAndAnswerById(questionId):
     return jsonify(output)
     
 
+
 @app.route('/addSurvey',methods=['POST'])
 def addSurvey():
     data = request.get_json()
     survey = SurveyModel(surveyName=data['surveyName'],surveyDescription=data['surveyDescription'],adminId=data['adminId'])
     db.session.add(survey)
     db.session.commit()
-    dataDict = {"message": "Anket eklendi","surveyId":survey.surveyId}
+    dataDict = {"message": "Anket eklendi","surveyId":survey["surveyId"]}
+    dataJSON = json.dumps(dataDict)
+    return dataJSON,201
+
+# Sadece katılımcıları ekleme kısmı yapılmadı.
+@app.route('/addSurveyQuestions', methods=['POST']) # gelen soru dataları question, cevap dataları answers ve anket dataları survey tablosuna doldurulacak 
+def addSurveyQuestion():
+    data = request.get_json()
+    questions = data["questions"]
+    answers = data["answers"]
+    print("questions : ",questions)
+    survey = SurveyModel(surveyName=data["surveyName"],surveyDescription=data["surveyDescription"],adminId=data["adminId"])
+    
+    db.session.add(survey)
+    db.session.commit()
+    newSurvey = db.session.query(SurveyModel).from_statement(text("""SELECT "surveyId" FROM "public"."Survey" ORDER BY "surveyId" DESC LIMIT 1;""")).all()
+    lastSurveyId = newSurvey[0].surveyId # son eklenen surveyId
+    
+    #ankete eklenen katılımcılar döngü içerisinde eklenecek
+    #surveyParticipant = SurveyParticipantModel(surveyId=lastSurveyId,participantId=data["participantId"],adminId=data["adminId"])    
+    for question in questions:
+        surveyQuestions = SurveyQuestionsModel(surveyId=lastSurveyId,questionId=question["questionId"],adminId=data['adminId'])
+        surveyQuestionData = QuestionModel(question=question["question"],answerType=question["answerType"],categoryId=question["categoryId"],adminId=data["adminId"])
+        if question["answerType"] != 1:
+            for answer in answers:
+                if question["questionId"] == answer["questionId"]:
+                    answerM = AnswerModel(questionId=question["questionId"],answers=answers[0]["answers"],answerType=question["answerType"],categoryId=1,adminId=data["adminId"],surveyId=lastSurveyId)
+                    db.session.add(answerM)
+                    db.session.commit()
+        elif question["answerType"] == 1:
+            for answer in answers: # 1 değeri çoktan seçmeli
+                if question["questionId"] == answer["questionId"]:
+                    answerM = AnswerModel(questionId=question["questionId"],answers=answer["answers"],answerType=question["answerType"],adminId=data["adminId"],categoryId=question["categoryId"],surveyId=lastSurveyId)
+                    db.session.add(answerM)
+                    db.session.commit()
+                    newAnswerId = db.session.query(AnswerModel).from_statement(text("""SELECT "answerId" FROM "public"."Answers" ORDER BY "answerId" DESC LIMIT 1;""")).all()
+                    lastAnswerId = newAnswerId[0].surveyId # son eklenen surveyId
+                    print("son eklenen answer id : ",lastAnswerId)
+                    closeEnded = CloseEndedAnswerModel(answerId=lastAnswerId,questionId=question["questionId"],optionId=answer["optionId"],answer=answer["answers"])
+                    print("***CloseEnded End")
+                    db.session.add(closeEnded)
+                    db.session.commit()
+    db.session.add(surveyQuestions)
+    #db.session.add(surveyParticipant)
+    db.session.add(surveyQuestionData)
+    db.session.commit()
+    print(data)
+    print("***return data")
+    respData = {"errorCheck" : True}
+    return respData,201
+
+@app.route('/getSurveyAdmin', methods=['POST'])
+def getSurveyAdmin():
+    data = request.get_json()
+    surveys = SurveyModel.query.all()
+    surveyDataIds = []
+    for survey in surveys:
+        if survey.adminId == data["adminId"]:
+            surveyDataIds.append(survey.surveyId)
+    surveyQuestions = SurveyQuestionsModel.query.all()
+    questionIds = []
+    for survQuestion in surveyQuestions:
+        for survAdminId in surveyDataIds:
+            if survQuestion.adminId == survAdminId:
+                questionIds.append(survQuestion.questionId)
+    questions = QuestionModel.query.all()
+    questionDataDict = {"data" : []}
+    for question in questions:
+        for quest in questionIds:
+            if question.questionId == quest:
+                questionDataDict["data"].append(question.question)
+    return questionDataDict,201
+
+@app.route('/getSurveyParticipant', methods=['POST'])
+def getSurveyParticipant():
+    data = request.get_json()
+    particiEmails = ParticipantUserModel.query.all()
+    uniqParticiId = 0
+    for particiEmail in particiEmails:
+        if particiEmail.email == data["email"]:
+            uniqParticiId = particiEmail.email
+    surveys = SurveyParticipantModel.query.all()
+    surveyDataIds = []
+    for survey in surveys:
+        if survey.participantId == uniqParticiId:
+            surveyDataIds.append(survey.surveyId)
+    surveyQuestions = SurveyQuestionsModel.query.all()
+    questionIds = []
+    for survQuestion in surveyQuestions:
+        for survParticipantId in surveyDataIds:
+            if survQuestion.surveyId == survParticipantId:
+                questionIds.append(survQuestion.questionId)
+    questions = QuestionModel.query.all()
+    questionDataDict = {"data" : []}
+    for question in questions:
+        for quest in questionIds:
+            if question.questionId == quest:
+                questionDataDict["data"].append(question.question)
+    return questionDataDict,201
+
+@app.route('/addSurveyParticipants', methods=['POST']) # tamamlandı
+def addSurveyParticipants():
+    data = request.get_json()
+    print(data)
+    print("----------------------------------------------------")
+    participants = data['participants']
+    print(participants)
+    print("-------------------------------")
+    print(participants[0])
+    
+    for participant in participants:
+        print(participant['participantId'])
+        reqData = SurveyParticipantModel(surveyId=data['surveyId'],participantId=participant['participantId'],adminId=data['adminId'])
+        db.session.add(reqData)
+        db.session.commit()
+        dataDict = {"message": "anket seçili katılımcılara atandı."}
+        dataJSON = json.dumps(dataDict)
+    return dataJSON,201
+
+@app.route('/addChoices', methods=['POST'])
+def addChoices():
+    data = request.get_json()
+    print(data)
+    print("-----------")
+    print(data['choiceIds'])
+    choices = data['choices']
+    for choice in choices:
+        choiceModel = ChoiceModel(questionId=choice['questionId'],participantId=data['participantId'],answerTypeId=choice['answerTypeId'])
+        db.session.add(choiceModel)
+        db.session.commit()
+        if choice['answerTypeId'] == 3:  # 3 çoktan seçmeli
+            openEndedModel = OpenEndedChoiceModel(questionId=choice['questionId'],participantId=data['participantId'],choice=choice['choice'])
+            db.session.add(openEndedModel)
+            db.session.commit()
+        elif choice['answerTypeId'] == 2: # 2 yes no
+            yesNoModel = YesNoChoiceModel(questionId=choice['questionId'],participantId=data['participantId'],choice=choice['choice'])
+            db.session.add(yesNoModel)
+            db.session.commit()
+        elif choice['answerTypeId'] == 1: # 1 açık uçlu
+            closeEndedModel = CloseEndedChoiceModel(questionId=choice['questionId'],participantId=data['participantId'],choice=choice['choice'])
+            db.session.add(closeEndedModel)
+            db.session.commit()
+
+    dataDict = {"message":"Katılımcının cevapları kaydedildi.", "check" : True}
     dataJSON = json.dumps(dataDict)
     return dataJSON,201
 #endregion

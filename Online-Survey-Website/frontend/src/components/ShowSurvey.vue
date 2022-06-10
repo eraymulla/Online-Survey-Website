@@ -1,114 +1,65 @@
 <template>
-<!-- Adminin soruları ve cevapları ekleyeceği ve katılımcının soruları cevaplayacağı ortak component-->
-  <div class="surveyContainer">
-    <div class="surveyRow">
-      <div class="surveyCol">
-        <div class="row">
-          <div class="col-md-8">
-            <h3 class="surveyQuestion">
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Deserunt
-              voluptates deleniti est incidunt! Ipsum illo voluptas reiciendis
-              autem?
-            </h3>
-
+  <div>
+    <default-layout> </default-layout>
+    <div class="surveyContainer">
+      <div class="surveyRow">
+        <div class="surveyCol">
+          <div class="row">
+            <div class="col-md">
+              <h3 class="surveyQuestion">
+                Lorem ipsum dolor sit, amet consectetur adipisicing elit.
+                Deserunt voluptates deleniti est incidunt! Ipsum illo voluptas
+                reiciendis autem?
+              </h3>
+            </div>
+          </div>
+          <!-- <div class="form-check surveyForm">
+            <div class="row">
+              <div class="answerColumn">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="flexRadioDefault"
+                  id="flexRadioDefault1"
+                />
+                <label
+                  class="form-check-label answerLabel"
+                  for="flexRadioDefault1"
+                >
+                  Yes
+                </label>
+              </div>
+              <div class="answerColumn">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="flexRadioDefault"
+                  id="flexRadioDefault1"
+                />
+                <label
+                  class="form-check-label answerLabel"
+                  for="flexRadioDefault1"
+                >
+                  No
+                </label>
+              </div>
+            </div>
+          </div> -->
+          <div class="row mt-4">
             <div class="input-group">
               <textarea
-                class="surveyQuestionText form-control"
+                class="participantSurveyQuestionText form-control"
                 aria-label="With textarea"
+                placeholder="Cevabınızı yazınız..."
               ></textarea>
             </div>
           </div>
-          <!--Dropdown sadece adminde gözükecek içerisinde sorunun cevap şekli seçilecek buna göre şıklar değişecek-->
-          <div class="col-md-4">
-            <div class="input-group mb-3 surveyInput">
-              <button
-                class="surveyBtn btn btn-outline-secondary dropdown-toggle"
-                type="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                Dropdown
+          <div class="row nextQuestionRow">
+            <div class="nextQuestionBtn">
+              <button type="submit" class="btn mb-3 btnMain">
+                Sonraki Soru
               </button>
-              <ul class="surveyDropDown dropdown-menu dropdown-menu-end">
-                <li>
-                  <a class="surveyDropdownItem dropdown-item" href="#"
-                    >Action</a
-                  >
-                </li>
-                <li>
-                  <a class="surveyDropdownItem dropdown-item" href="#"
-                    >Another action</a
-                  >
-                </li>
-                <li>
-                  <a class="surveyDropdownItem dropdown-item" href="#"
-                    >Something else here</a
-                  >
-                </li>
-                <li><hr class="dropdown-divider" /></li>
-                <li>
-                  <a class="surveyDropdownItem dropdown-item" href="#"
-                    >Separated link</a
-                  >
-                </li>
-              </ul>
             </div>
-          </div>
-        </div>
-        <div class="form-check surveyForm">
-          <div class="row">
-            <div class="answerColumn">
-              <input
-                class="form-check-input"
-                type="radio"
-                name="flexRadioDefault"
-                id="flexRadioDefault1"
-              />
-              <label
-                class="form-check-label answerLabel"
-                for="flexRadioDefault1"
-              >
-                A şıkkı böyle gözükecek
-              </label>
-            </div>
-            <div class="answerColumn">
-              <input
-                class="form-check-input"
-                type="radio"
-                name="flexRadioDefault"
-                id="flexRadioDefault1"
-              />
-              <label
-                class="form-check-label answerLabel"
-                for="flexRadioDefault1"
-              >
-                B şıkkı böyle gözükecek
-              </label>
-            </div>
-
-            <!--adminin sorulara cevap ekleyeceği input sadece admin soru ve cevap eklerken gözükecek-->
-            <div class="answerColumn">
-              <input
-                class="form-check-input"
-                type="radio"
-                name="flexRadioDefault"
-                id="flexRadioDefault1"
-              />
-              <input
-                class="answerColumn answerInput"
-                type="text"
-                name=" "
-                id=""
-              />
-            </div>
-          </div>
-        </div>
-        <!--Adminde ve katılımcıda ortak sonraki soru butonu-->
-        <div class="row">
-          <div class="nextQuestionBtn">
-            <button type="submit" class="btn  mb-3 btnMain">
-              Sonraki Soru
-            </button>
           </div>
         </div>
       </div>
@@ -116,7 +67,9 @@
   </div>
 </template>
 <script>
+import DefaultLayout from "./DefaultLayout.vue";
 export default {
+  components: { DefaultLayout },
   data() {
     return {
       name: null,
@@ -127,12 +80,14 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .surveyContainer {
   display: flex;
   justify-content: center;
   resize: both;
   overflow: auto;
+  position: absolute;
+  z-index: 1;
 }
 .surveyRow {
   padding: 30px;
@@ -180,7 +135,7 @@ export default {
 }
 .surveyInput {
   display: flex;
-  justify-content: end;
+  justify-content: flex-end;
 }
 .surveyBtn {
   border-color: #7cdcffce;
@@ -220,8 +175,13 @@ export default {
   border-color: #7cdcffce;
   color: #09192c;
 }
-.nextQuestionBtn{
+.nextQuestionBtn {
   display: flex;
-  justify-content: end;
+  justify-content: flex-end;
+}
+.participantSurveyQuestionText {
+  background-color: transparent;
+  border-color: #7cdcffce;
+  color: #09192c;
 }
 </style>

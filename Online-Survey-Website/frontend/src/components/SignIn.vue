@@ -3,7 +3,7 @@
     <div class="container-sm">
       <div class="row">
         <div id="left-side" class="col-sm-6 my-auto">
-          <h1>StarPool </h1>
+          <h1>StarPool</h1>
           <p>
             See how experienced developers solve problems in real-time. <br />
             Watching scripted tutorials is great, but understanding how <br />
@@ -68,8 +68,11 @@
 <script>
 /* eslint-disable */
 import ForgetPassword from "./ForgetPassword.vue";
-
+import { mapState } from "vuex";
 export default {
+  mounted() {
+    console.log(this.$store.state.text); // this.$store
+  },
   data() {
     return {
       email: "",
@@ -78,6 +81,9 @@ export default {
       isChangePassword: false,
     };
   },
+  computed: mapState({
+    state: (state) => state.data,
+  }),
   components: { ForgetPassword },
   methods: {
     changePassword() {
@@ -120,6 +126,7 @@ export default {
         .then(function (response) {
           console.log(JSON.stringify(response.data));
           respData = response.data;
+
           console.log(".then respData : ", respData);
         })
         .catch(function (error) {
@@ -127,6 +134,7 @@ export default {
         })
         .finally(() => {
           if (typeof respData.email != "undefined") {
+            this.$store.dispatch('mainPage/loadData', respData)
             this.$router.push("/main-page");
           } else {
             this.$router.push("/");
@@ -160,7 +168,6 @@ export default {
   color: #f7c5c5;
   font-weight: 650;
 }
-
 
 #button {
   background-color: #6054a6;

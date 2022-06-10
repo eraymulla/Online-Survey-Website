@@ -3,7 +3,7 @@
     <div class="container-sm">
       <div class="row">
         <div id="text-area" class="col-sm-6 my-auto">
-          <h1>Survey Monkey</h1>
+          <h1>StarPool</h1>
           <p>
             See how experienced developers solve problems in real-time. <br />
             Watching scripted tutorials is great, but understanding how <br />
@@ -17,77 +17,37 @@
             <div class="first-input-area" v-show="!isNextArea">
               <!-- name  -->
               <div class="row col-sm-11 mx-auto">
-                <input
-                  v-model="name"
-                  id="input-area"
-                  class="required"
-                  placeholder="First Name"
-                  type="text"
-                  aria-label="name"
-                />
+                <input v-model="name" id="input-area" class="required" placeholder="First Name" type="text"
+                  aria-label="name" />
               </div>
               <!-- surname -->
               <div class="row col-sm-11 mx-auto">
-                <input
-                  v-model="surname"
-                  id="input-area"
-                  class="required"
-                  placeholder="Last Name"
-                  type="text"
-                  aria-label="last-name"
-                />
+                <input v-model="surname" id="input-area" class="required" placeholder="Last Name" type="text"
+                  aria-label="last-name" />
               </div>
               <!-- email -->
               <div class="row col-sm-11 mx-auto">
-                <input
-                  v-model="email"
-                  id="input-area"
-                  class="required"
-                  placeholder="Email Address"
-                  type="text"
-                  aria-label="mail"
-                />
+                <input v-model="email" id="input-area" class="required" placeholder="Email Address" type="text"
+                  aria-label="mail" />
               </div>
               <!-- phone  -->
               <div class="row col-sm-11 mx-auto">
-                <input
-                  v-model="phoneNumber"
-                  id="input-area"
-                  class="required"
-                  placeholder="Phone Number"
-                  type="text"
-                  aria-label="phone"
-                />
+                <input v-model="phoneNumber" id="input-area" class="required" placeholder="Phone Number" type="text"
+                  aria-label="phone" />
               </div>
               <!-- password  -->
               <div class="row col-sm-11 mx-auto">
-                <input
-                  v-model="password"
-                  id="input-area"
-                  class="required"
-                  placeholder="Password"
-                  type="password"
-                  aria-label="password"
-                />
+                <input v-model="password" id="input-area" class="required" placeholder="Password" type="password"
+                  aria-label="password" />
               </div>
               <!-- permission Id  Admin için 2 değeri User için 1 değeri -->
               <div class="row col-sm-11 mx-auto">
                 <div id="input-area">
                   Choose an one: <br />
-                  <input
-                    type="radio"
-                    value="1"
-                    v-model="permissionId"
-                    @click="setPermissionId1()"
-                  />
+                  <input type="radio" value="1" v-model="permissionId" @click="setPermissionId1()" />
                   <label for="one">Katılımcı</label>
 
-                  <input
-                    type="radio"
-                    value="2"
-                    v-model="permissionId"
-                    @click="setPermissionId2()"
-                  />
+                  <input type="radio" value="2" v-model="permissionId" @click="setPermissionId2()" />
                   <label for="two">Admin</label>
                 </div>
               </div>
@@ -95,20 +55,10 @@
               <div class="row col-sm-11 mx-auto">
                 <div @click="deneme()" id="input-area">
                   Choose an one: <br />
-                  <input
-                    type="radio"
-                    value="1"
-                    v-model="jobId"
-                    @click="setJobId1()"
-                  />
+                  <input type="radio" value="1" v-model="jobId" @click="setJobId1()" />
                   <label for="one">Student</label>
 
-                  <input
-                    type="radio"
-                    value="2"
-                    v-model="jobId"
-                    @click="setJobId2()"
-                  />
+                  <input type="radio" value="2" v-model="jobId" @click="setJobId2()" />
                   <label for="two">Employee</label>
                 </div>
               </div>
@@ -121,24 +71,14 @@
               <div class="for-student" v-if="jobId == '1'">
                 <!-- age  -->
                 <div class="row col-sm-11 mx-auto">
-                  <input
-                    v-model="age"
-                    id="input-area"
-                    class="required"
-                    placeholder="What's your age ?"
-                    type="number"
-                  />
+                  <input v-model="age" id="input-area" class="required" placeholder="What's your age ?" type="number" />
                 </div>
                 <!-- education status  -->
                 <div class="row col-sm-11 mx-auto">
                   <div id="input-area">
                     Choose your education status
                     <select v-model="educationStatus">
-                      <option
-                        v-for="(option, index) in options"
-                        :key="index"
-                        :value="option.value"
-                      >
+                      <option v-for="(option, index) in options" :key="index" :value="option.value">
                         {{ option.text }}
                       </option>
                     </select>
@@ -146,26 +86,13 @@
                 </div>
                 <!-- department  -->
                 <div class="row col-sm-11 mx-auto">
-                  <input
-                    v-model="department"
-                    id="input-area"
-                    class="required"
-                    placeholder="What's your department ?"
-                    type="text"
-                  />
+                  <input v-model="department" id="input-area" class="required" placeholder="What's your department ?"
+                    v-if="educationStatus == 3" type="text" />
                 </div>
                 <!-- grade  -->
-                <div
-                  class="row col-sm-11 mx-auto"
-                  v-if="educationStatus == 3"
-                >
-                  <input
-                    v-model="grade"
-                    id="input-area"
-                    class="required"
-                    placeholder="What grade are u in ?"
-                    type="number"
-                  />
+                <div class="row col-sm-11 mx-auto">
+                  <input v-model="grade" id="input-area" class="required" placeholder="What grade are u in ?"
+                    type="number" />
                 </div>
               </div>
 
@@ -175,41 +102,24 @@
               <div class="for-employee" v-if="jobId == '2'">
                 <!-- salary  -->
                 <div class="row col-sm-11 mx-auto">
-                  <input
-                    v-model="salary"
-                    id="input-area"
-                    class="required"
-                    placeholder="What's your salary ?"
-                    type="number"
-                  />
+                  <input v-model="salary" id="input-area" class="required" placeholder="What's your salary ?"
+                    type="number" />
                 </div>
                 <!-- experience -->
                 <div class="row col-sm-11 mx-auto">
-                  <input
-                    v-model="experience"
-                    id="input-area"
-                    class="required"
-                    placeholder="Experience ?"
-                    type="number"
-                  />
+                  <input v-model="experience" id="input-area" class="required" placeholder="Experience ?"
+                    type="number" />
                 </div>
                 <!-- age -->
                 <div class="row col-sm-11 mx-auto">
-                  <input
-                    v-model="age"
-                    id="input-area"
-                    class="required"
-                    placeholder="What's your age ?"
-                    type="number"
-                  />
+                  <input v-model="age" id="input-area" class="required" placeholder="What's your age ?" type="number" />
                 </div>
               </div>
             </div>
             <!-- sign up button  -->
             <div class="d-grid col-sm-11 mx-auto">
-              <button
-                v-show="isNextArea"
-                @click="
+              <router-link to="/sign-in">
+                <button  v-if="isNextArea"  @click="
                   signUpPost({
                     name,
                     surname,
@@ -226,44 +136,35 @@
                     salary,
                     educationStatus,
                   })
-                "
-                id="signup-button"
-                type="button"
-                class="btn mb-1 shadow"
-              >
-                <router-link to="/sign-in"> SIGN UP</router-link>
-              </button>
+                " id="signup-button" type="button" class="btn mb-1 shadow">
+                SIGN UP
+                </button>
+              </router-link>
             </div>
 
             <div class="d-grid col-sm-11 mx-auto">
-              <button
-                v-if="!isNextArea"
-                @click="
-                  nextAreaPost({
-                    name,
-                    surname,
-                    email,
-                    password,
-                    phoneNumber,
-                    jobId,
-                    isAdmin,
-                    permissionId,
-                  }),
-                    deneme()
-                "
-                id="signup-button"
-                type="button"
-                class="btn mb-1 shadow justify-content-center"
-              >
+              <button v-if="!isNextArea" @click="
+                nextAreaPost({
+                  name,
+                  surname,
+                  email,
+                  password,
+                  phoneNumber,
+                  jobId,
+                  isAdmin,
+                  permissionId,
+                }),
+                deneme()
+              " id="signup-button" type="button" class="btn mb-1 shadow justify-content-center">
                 Next
               </button>
-              <a
+              <!-- <a
                 v-if="isNextArea"
                 id="lastOne"
                 @click="this.isNextArea = false"
               >
                 Prev
-              </a>
+              </a> -->
             </div>
           </div>
         </div>
@@ -282,7 +183,7 @@ export default {
       surname: "",
       age: "",
       phoneNumber: "",
-      studentOrEmployee : null,
+      studentOrEmployee: null,
       jobId: null,
       isAdmin: "",
       department: "",
@@ -598,6 +499,7 @@ export default {
   margin: -10px 10px 10px 0px !important;
   font-weight: 600;
 }
+
 #button p {
   text-align: center;
   font-size: 15px;
@@ -654,16 +556,19 @@ export default {
     text-align: center;
     padding-top: 5rem;
   }
+
   #text-area p {
     margin-top: 1.5rem;
     margin-left: 11px;
     margin-right: 11px;
   }
+
   #button {
     display: grid;
     margin-left: 1rem;
     margin-right: 1rem;
   }
+
   #main-input-area {
     display: flexbox;
     padding-top: 25px;
@@ -672,11 +577,13 @@ export default {
     max-width: 92%;
     margin-bottom: 5rem;
   }
+
   #lastOne {
     display: grid;
     align-items: center;
     justify-content: center;
   }
+
   #signup-button {
     display: grid;
     max-width: 100%;

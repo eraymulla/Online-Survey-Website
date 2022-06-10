@@ -3,7 +3,7 @@
     <div class="container-sm">
       <div class="row">
         <div id="left-side" class="col-sm-6 my-auto">
-          <h1>Survey Monkey</h1>
+          <h1>StarPool</h1>
           <p>
             See how experienced developers solve problems in real-time. <br />
             Watching scripted tutorials is great, but understanding how <br />
